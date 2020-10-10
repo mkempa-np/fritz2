@@ -12,9 +12,8 @@ import kotlinx.coroutines.flow.*
  * creates a new [DetachedStore]
  *
  * @param lens describes, which part of the parent's model a [DetachedStore] is created for
- * @param initialData start value of the new [Store]
  */
-fun <T, X> Store<T>.detach(lens: Lens<T, X>, initialData: X) = DetachedStore(initialData, this, lens)
+fun <T, X> Store<T>.detach(lens: Lens<T, X>) = DetachedStore(this, lens)
 
 /**
  * creates a new [DetachedStore]s
@@ -22,8 +21,8 @@ fun <T, X> Store<T>.detach(lens: Lens<T, X>, initialData: X) = DetachedStore(ini
  * @param element describes, which element of the parent's [List] a [DetachedStore] is created for
  * @param idProvider function to derive a unique id from an instance
  */
-fun <T, I> Store<List<T>>.detach(element: T, idProvider: IdProvider<T, I>, initialData: T = element) =
-    DetachedStore(initialData, this, elementLens(element, idProvider))
+fun <T, I> Store<List<T>>.detach(element: T, idProvider: IdProvider<T, I>) =
+    DetachedStore(this, elementLens(element, idProvider))
 
 
 /**
@@ -32,13 +31,19 @@ fun <T, I> Store<List<T>>.detach(element: T, idProvider: IdProvider<T, I>, initi
  * This can be useful, when you want to address a [Handler] different from update at your RootStore
  * to deal with new values of this sub-model (or below).
  *
- * @property initialData start value of this [Store]
  * @property parent parent [Store]
  * @property lens definition, which sub-model is represented by this [Store]
  */
-class DetachedStore<T, P>(private val initialData: T, private val parent: Store<P>, private val lens: Lens<P, T>) :
+@Suppress("UNCHECKED_CAST")
+class DetachedStore<T, P>(private val parent: Store<P>, private val lens: Lens<P, T>) :
     Store<T>, CoroutineScope by MainScope() {
-    private val state = MutableStateFlow(initialData)
+    val state: MutableStateFlow<T> = MutableStateFlow(null as T)
+
+    init {
+        parent.data.take(1).onEach {
+            state.value = lens.get(it)
+        }.launchIn(this)
+    }
 
     /**
      * defines how to infer the id of the sub-part from the parent's id.
@@ -53,9 +58,17 @@ class DetachedStore<T, P>(private val initialData: T, private val parent: Store<
     }
 
     /**
-     * a simple [SimpleHandler] that just takes the given action-value as the new value for the [Store].
+     * a [SimpleHandler] that just takes the given action-value as the new value for the [Store].
      */
     override val update = handle<T> { _, newValue -> newValue }
+
+    /**
+     * a [SimpleHandler] that commits the current value to the parent [Store].
+     */
+    val commit = handle { value ->
+        parent.enqueue(QueuedUpdate({ lens.set(it, value) }, parent::errorHandler))
+        value
+    }
 
     /**
      * the current value of the [DetachedStore] is derived from the data of it's parent using the given [Lens].
