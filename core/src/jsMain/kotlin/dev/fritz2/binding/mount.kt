@@ -1,9 +1,7 @@
 package dev.fritz2.binding
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.NonCancellable.cancel
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -22,6 +20,32 @@ abstract class SingleMountPoint<T>(upstream: Flow<T>) {
         }.catch {
             cancel()
         }.launchIn(MainScope())
+    }
+
+    private var last: T? = null
+
+    /**
+     * this method is called for each new value on the upstream-[Flow]
+     *
+     * @param value new value on the [Flow]
+     * @param last old value of the [Flow] (before the last update)
+     */
+    abstract fun set(value: T, last: T?): Unit
+}
+
+abstract class JobSingleMountPoint<T>(upstream: Flow<T>, job: Job, n: String) {
+    init {
+        upstream.onEach {
+            console.log("canceling children of @ $n: ${job.hashCode()}")
+
+            job.cancelChildren()
+            set(it, last)
+            last = it
+        }.catch {
+            cancel()
+        }.launchIn(MainScope() + job)
+
+        console.log("launched @$n: ${job.hashCode()}")
     }
 
     private var last: T? = null

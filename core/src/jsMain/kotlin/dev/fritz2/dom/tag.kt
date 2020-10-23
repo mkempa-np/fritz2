@@ -3,6 +3,7 @@ package dev.fritz2.dom
 import dev.fritz2.binding.*
 import dev.fritz2.dom.html.HtmlElements
 import kotlinx.browser.window
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.w3c.dom.Element
@@ -28,6 +29,7 @@ open class Tag<out T : Element>(
     tagName: String,
     val id: String? = null,
     val baseClass: String? = null,
+    override val job: Job,
     override val domNode: T = createDomElement(tagName, id, baseClass).unsafeCast<T>()
 ) : WithDomNode<T>, WithAttributes<T>, WithComment<T>, WithEvents<T>(), HtmlElements {
 
@@ -51,6 +53,20 @@ open class Tag<out T : Element>(
     fun <X : Element> Flow<Tag<X>>.bind(preserveOrder: Boolean = false): SingleMountPoint<WithDomNode<Element>> =
         if (preserveOrder) DomMountPointPreserveOrder(this, domNode)
         else DomMountPoint(this, domNode)
+
+    fun <X : Element> Flow<Tag<X>>.bindJob(n: String, o: Job) {
+        console.log("bindJob @ ${domNode.tagName}: ${job.hashCode()}")
+        JobDomMountPoint(this, domNode, o, n)
+    }
+
+    fun <X, E : Element> Flow<X>.renderJob(mapper: HtmlElements.(X) -> Tag<E>): Flow<Tag<E>> {
+        console.log("renderJob @ ${domNode.tagName}: ${job.hashCode()}")
+        return this.map { data ->
+            dev.fritz2.dom.html.render(job) {
+                mapper(data)
+            }
+        }
+    }
 
     /**
      * binds a [Seq] of [Tag]s at this position (creates a [DomMultiMountPoint] as a placeholder and adds it to the builder)

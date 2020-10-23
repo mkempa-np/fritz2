@@ -1,6 +1,7 @@
 package dev.fritz2.dom.html
 
 import dev.fritz2.dom.Tag
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.w3c.dom.Element
@@ -13,8 +14,13 @@ import org.w3c.dom.Element
  *  @throws MultipleRootElementsException if more then one root [Tag] is defined in [content]
  *  @param content html [Tag] elements to render
  */
-fun <E : Element> render(content: HtmlElements.() -> Tag<E>) =
+fun <E : Element> render(parentjob: Job? = null, content: HtmlElements.() -> Tag<E>) =
     content(object : HtmlElements {
+        override val job = Job(parentjob)
+
+        init {
+            console.log("... created job $job with parent $parentjob")
+        }
 
         var alreadyRegistered: Boolean = false
 

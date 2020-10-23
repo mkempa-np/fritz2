@@ -1,10 +1,12 @@
 package dev.fritz2.dom
 
+import dev.fritz2.binding.JobSingleMountPoint
 import dev.fritz2.binding.MultiMountPoint
 import dev.fritz2.binding.Patch
 import dev.fritz2.binding.SingleMountPoint
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import org.w3c.dom.*
 
@@ -33,6 +35,28 @@ class DomMountPoint<T : org.w3c.dom.Node>(upstream: Flow<WithDomNode<T>>, val ta
     }
 }
 
+class JobDomMountPoint<T : org.w3c.dom.Node>(
+    upstream: Flow<WithDomNode<T>>,
+    val target: org.w3c.dom.Node?,
+    job: Job,
+    n: String
+) :
+    JobSingleMountPoint<WithDomNode<T>>(upstream, job, n) {
+
+    /**
+     * updates the elements in the DOM
+     *
+     * @param value new [Tag]
+     * @param last last [Tag] (to be replaced)
+     */
+    override fun set(value: WithDomNode<T>, last: WithDomNode<T>?) {
+        if (last?.domNode != null) {
+            target?.replaceChild(value.domNode, last.domNode)
+        } else {
+            target?.appendChild(value.domNode)
+        }
+    }
+}
 
 /**
  * A [SingleMountPoint] to mount the values of a [Flow] of [WithDomNode]s (mostly [Tag]s) at this point in the DOM.
