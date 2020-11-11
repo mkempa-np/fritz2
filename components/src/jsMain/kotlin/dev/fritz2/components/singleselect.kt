@@ -323,7 +323,7 @@ class RadioComponent {
         )
 
         val radioLabelStaticCss = staticStyle(
-            "radiolabel",
+            "radioLabel",
             """
             display: inline-block;
             position: relative;
