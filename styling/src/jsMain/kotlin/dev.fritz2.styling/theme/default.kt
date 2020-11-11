@@ -7,8 +7,9 @@ import dev.fritz2.styling.theme.*
 open class DefaultTheme : Theme {
     override val name = "default"
 
-    final override val breakPoints = ResponsiveValue("30em", "48em", "62em", "80em")
+    final override val breakPoints = ResponsiveValue("576px", "768px", "992px", "1200px")
 
+    override val mediaQuerySm: String = "@media screen and (min-width: ${breakPoints.sm})"
     override val mediaQueryMd: String = "@media screen and (min-width: ${breakPoints.md})"
     override val mediaQueryLg: String = "@media screen and (min-width: ${breakPoints.lg})"
     override val mediaQueryXl: String = "@media screen and (min-width: ${breakPoints.xl})"

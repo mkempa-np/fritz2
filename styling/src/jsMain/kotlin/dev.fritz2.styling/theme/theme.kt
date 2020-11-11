@@ -65,6 +65,11 @@ interface Theme {
     val breakPoints: ResponsiveValue
 
     /**
+     * the media query used for small sized screens
+     */
+    val mediaQuerySm: String
+
+    /**
      * the media query used for middle sized screens
      */
     val mediaQueryMd: String
