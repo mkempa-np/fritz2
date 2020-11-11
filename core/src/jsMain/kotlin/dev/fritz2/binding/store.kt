@@ -3,6 +3,9 @@ package dev.fritz2.binding
 import dev.fritz2.flow.asSharedFlow
 import dev.fritz2.lenses.Lens
 import dev.fritz2.lenses.Lenses
+import dev.fritz2.remote.Socket
+import dev.fritz2.remote.body
+import dev.fritz2.repositories.Resource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.channels.BroadcastChannel
@@ -34,7 +37,7 @@ class QueuedUpdate<T>(
 /**
  * The [Store] is the main type for all data binding activities. It the base class of all concrete Stores like [RootStore], [SubStore], etc.
  */
-interface Store<T> : CoroutineScope {
+interface Store<T> {
 
     /**
      * default error handler printing the error an keeping the previous value
@@ -57,7 +60,7 @@ interface Store<T> : CoroutineScope {
         execute: suspend (T, A) -> T
     ) = SimpleHandler<A> {
         it.onEach { enqueue(QueuedUpdate({ t -> execute(t, it) }, errorHandler)) }
-            .launchIn(this)
+            .launchIn(MainScope())
     }
 
     /**
@@ -70,7 +73,7 @@ interface Store<T> : CoroutineScope {
         execute: suspend (T) -> T
     ) = SimpleHandler<Unit> {
         it.onEach { enqueue(QueuedUpdate({ t -> execute(t) }, errorHandler)) }
-            .launchIn(this)
+            .launchIn(MainScope())
     }
 
     /**
@@ -87,7 +90,7 @@ interface Store<T> : CoroutineScope {
     ) =
         OfferingHandler<A, E>(bufferSize) { inFlow, outChannel ->
             inFlow.onEach { enqueue(QueuedUpdate({ t -> outChannel.execute(t, it) }, errorHandler)) }
-                .launchIn(this)
+                .launchIn(MainScope())
         }
 
     /**
@@ -103,7 +106,7 @@ interface Store<T> : CoroutineScope {
     ) =
         OfferingHandler<Unit, E>(bufferSize) { inFlow, outChannel ->
             inFlow.onEach { enqueue(QueuedUpdate({ t -> outChannel.execute(t) }, errorHandler)) }
-                .launchIn(this)
+                .launchIn(MainScope())
         }
 
     /**
@@ -141,6 +144,20 @@ interface Store<T> : CoroutineScope {
     fun syncBy(handler: Handler<T>) {
         data.drop(1) handledBy handler
     }
+
+    fun <I> syncWith(socket: Socket, resource: Resource<T, I>) {
+        val session = socket.connect()
+        var last: T? = null
+        session.messages.body.map {
+            val received = resource.serializer.read(it)
+            last = received
+            received
+        } handledBy update
+
+        data.drop(1).onEach {
+            if (last != it) session.send(resource.serializer.write(it))
+        }.watch()
+    }
 }
 
 /**
@@ -148,6 +165,20 @@ interface Store<T> : CoroutineScope {
  */
 inline fun <T, R> Store<T>.syncBy(handler: Handler<R>, crossinline mapper: suspend (T) -> R) {
     data.drop(1).map(mapper) handledBy handler
+}
+
+fun <T, I> Store<List<T>>.syncWith(socket: Socket, resource: Resource<T, I>) {
+    val session = socket.connect()
+    var last: List<T>? = null
+    session.messages.body.map {
+        val received = resource.serializer.readList(it)
+        last = received
+        received
+    } handledBy update
+
+    data.drop(1).onEach {
+        if (last != it) session.send(resource.serializer.writeList(it))
+    }.watch()
 }
 
 /**

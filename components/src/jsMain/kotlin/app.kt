@@ -5,47 +5,9 @@ import dev.fritz2.dom.html.HtmlElements
 import dev.fritz2.dom.html.render
 import dev.fritz2.dom.mount
 import dev.fritz2.routing.router
-import dev.fritz2.styling.params.AlignItemsValues
 import dev.fritz2.styling.theme.render
 import dev.fritz2.styling.theme.theme
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-
-//fun HtmlElements.myLink(
-//    styling: BasicParams.() -> Unit = {},
-//    baseClass: StyleClass? = null,
-//    id: String? = null,
-//    prefix: String = "my-link",
-//    init: A.() -> Unit
-//): A =
-//    ::a.styled(styling, baseClass, id, prefix) {
-//        fontSize { giant }
-//    }(init)
-//
-//
-//fun HtmlElements.myRedLink(
-//    styling: BasicParams.() -> Unit = {},
-//    baseClass: StyleClass? = null,
-//    id: String? = null,
-//    prefix: String = "my-red-link",
-//    init: A.() -> Unit
-//): A =
-//    ::myLink.styled(styling, baseClass, id, prefix) {
-//        color { danger }
-//    }(init)
-//
-//
-//fun HtmlElements.myBorderedRedLink(
-//    styling: BasicParams.() -> Unit = {},
-//    baseClass: StyleClass? = null,
-//    id: String? = null,
-//    prefix: String = "mbrl",
-//    init: A.() -> Unit
-//): A =
-//    ::myRedLink.styled(styling, baseClass, id, prefix) {
-//        border {
-//            width { "1px" }
-//        }
-//    }(init)
 
 fun HtmlElements.simpleLinkWithBackground(linkUri: String, linkText: String): A {
     return (::a.styled {
@@ -118,12 +80,6 @@ fun main() {
 
     render { theme: ExtendedTheme ->
         themeProvider {
-            // grab the ThemeStore to pass it down towards components, that need to access either the
-            // data or to change the selected theme
-            val store = themeStore
-            // could be the default? (So only need to set it to ``false`` actively?)
-            resetCss { true }
-            // Override default theme by a new list of themes
             themes { themes }
             items {
                 lineUp({
@@ -158,14 +114,15 @@ fun main() {
 
                                 simpleAnchor("flexbox")
                                 simpleAnchor("gridbox")
+                                simpleAnchor("stack")
                                 simpleAnchor("icons")
+                                simpleAnchor("buttons")
+                                simpleAnchor("popover")
+                                simpleAnchor("modal")
                                 simpleAnchor("input")
                                 simpleAnchor("multiselect")
                                 simpleAnchor("singleselect")
                                 simpleAnchor("formcontrol")
-                                simpleAnchor("stack")
-                                simpleAnchor("buttons")
-                                simpleAnchor("modal")
 
                                 (::a.styled {
                                     paddings {
@@ -208,13 +165,13 @@ fun main() {
                                     "input" -> inputDemo()
                                     "buttons" -> buttonDemo()
                                     "formcontrol" -> formControlDemo()
-                                    // textdemo currently on welcome page, copied, not called
-                                    "flexbox" -> flexBoxDemo(store, themes, theme)
+                                    "flexbox" -> flexBoxDemo(themeStore, themes, theme)
                                     "gridbox" -> gridBoxDemo()
                                     "multiselect" -> multiSelectDemo()
                                     "singleselect" -> singleSelectDemo()
-                                    "stack" -> stackDemo(theme)
+                                    "stack" -> stackDemo()
                                     "modal" -> modalDemo()
+                                    "popover" -> popoverDemo()
                                     "welcome" -> welcome()
                                     else -> welcome()
                                 }
