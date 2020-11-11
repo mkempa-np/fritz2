@@ -54,7 +54,9 @@ fun HtmlElements.flexBoxDemo(themeStore: ThemeStore, themes: List<ExtendedTheme>
                         md = { left { normal } }
                     )
                 }) {
-                    (::p.styled { theme.teaserText }) { +"Teaser texts can be styled as well" }
+                    (::p.styled {
+                        theme.teaserText
+                    }) { +"Teaser texts can be styled as well" }
 //                    p {
 //                        // TODO: Way too complicated - needs to get some convenient API! (But how?)
 //                        className = themeStore.data.map { i -> staticStyle("foo", themes[i].teaserText).name }
@@ -66,11 +68,11 @@ fun HtmlElements.flexBoxDemo(themeStore: ThemeStore, themes: List<ExtendedTheme>
                             all { "0.8rem" }
                             left { "0" }
                         }
-
+                        fontSize { normal }
                     }) {
                         +"Flex layouts provide a better of using space on websites and handle containers of unknown sizes. While we showcase our flex layout, let's use the opportunity to also show off theme selection with this small example:"
                     }
-                    (::p.styled {
+                    (::div.styled {
                         paddings {
                             all { "0.8rem" }
                             left { "0" }
@@ -90,11 +92,12 @@ fun HtmlElements.flexBoxDemo(themeStore: ThemeStore, themes: List<ExtendedTheme>
                             } handledBy themeStore.selectTheme
                         }.watch()
                     }
-                    (::h3.styled {
+                    (::p.styled {
                         paddings {
                             all { "0.8rem" }
                             left { "0" }
                         }
+                        fontSize { normal }
                         fontWeight { normal }
                     }) {
                         +"Lorem ipsum dolor sit amet consectetur adipisicing elit. Cum doloribus amet vel? Expedita "
