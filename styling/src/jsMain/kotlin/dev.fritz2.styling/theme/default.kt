@@ -43,15 +43,15 @@ open class DefaultTheme : Theme {
     )
 
     override val colors = object : Colors {
-        override val primary = "#3d405b"
-        override val secondary = "#e07a5f"
-        override val tertiary = "#81b29a"
-        override val success = "#28a745"
-        override val danger = "#dc3545"
-        override val warning = "#ffc107"
-        override val info = "#17a2b8"
-        override val light = "#e2e8f0"
-        override val dark = "#343a40"
+        override val primary = "#3182ce" // lvl 500
+        override val secondary = "#718096" // lvl 500
+        override val tertiary = "#9ae6b4" // lvl 200
+        override val success = "#38a169" // lvl 500
+        override val danger = "#e53e3e" // lvl 500
+        override val warning = "#ECC94B" // lvl 400
+        override val info = "#00B5D8" // lvl 500
+        override val light = "#F7FAFC" // lvl 50
+        override val dark = "#2D3748" // lvl 700
         override val disabled = light
     }
 
