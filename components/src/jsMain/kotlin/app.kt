@@ -121,6 +121,7 @@ fun main() {
                                 simpleAnchor("multiselect")
                                 simpleAnchor("singleselect")
                                 simpleAnchor("formcontrol")
+                                simpleAnchor("table")
 
                                 (::a.styled {
                                     theme().tooltip.write("visit us on", "www.fritz2.dev"){left}()
@@ -175,6 +176,7 @@ fun main() {
                                     "stack" -> stackDemo()
                                     "modal" -> modalDemo()
                                     "popover" -> popoverDemo()
+                                    "table" -> tableDemo()
                                     "welcome" -> welcome()
                                     else -> welcome()
                                 }
