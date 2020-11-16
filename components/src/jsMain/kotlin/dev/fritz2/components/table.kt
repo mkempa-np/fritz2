@@ -68,7 +68,7 @@ class TableComponent <T>{
        configStore = value
     }
     fun configStore(value: List<TableColumn<T>>) {
-      //  action(value) handledBy configStore.update
+        configStore.update(value)
     }
 
     var tableStore: RootStore<List<T>> = storeOf(emptyList())
@@ -120,6 +120,7 @@ fun <T, I> RenderContext.table(
                         span{}
                     }
                 }
+
                 component.configStore.data.renderEach { ctx ->
                     th {
                         +ctx.headerName
