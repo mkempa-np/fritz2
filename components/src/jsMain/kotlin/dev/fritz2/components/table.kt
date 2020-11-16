@@ -8,6 +8,7 @@ import dev.fritz2.identification.uniqueId
 import dev.fritz2.lenses.Lens
 import dev.fritz2.styling.StyleClass
 import dev.fritz2.styling.params.BasicParams
+import dev.fritz2.styling.params.GridParams
 import dev.fritz2.styling.params.Style
 import dev.fritz2.styling.staticStyle
 import dev.fritz2.styling.theme.Property
@@ -63,14 +64,15 @@ class TableComponent <T>{
         selectionMode = value
     }
 
-    var configStore: RootStore<List<TableColumn<T>>> = storeOf(emptyList())
-    fun configStore(value: RootStore<List<TableColumn<T>>>) {
+    var configStore: Store<List<TableColumn<T>>> = storeOf(emptyList())
+    fun configStore(value: Store<List<TableColumn<T>>>) {
        configStore = value
     }
     fun configStore(value: List<TableColumn<T>>) {
         configStore.update(value)
     }
 
+    //TODO - Store? Aktuell nicht möglich, wegen des benötigten ID Provider
     var tableStore: RootStore<List<T>> = storeOf(emptyList())
     fun tableStore(value: RootStore<List<T>>) {
         tableStore = value
@@ -86,7 +88,7 @@ class TableComponent <T>{
 }
 
 fun <T, I> RenderContext.table(
-    styling: BasicParams.() -> Unit = {},
+    styling: GridParams.() -> Unit = {},
     baseClass: StyleClass? = null,
     id: String? = null,
     prefix: String = TableComponent.prefix,
@@ -95,7 +97,21 @@ fun <T, I> RenderContext.table(
 ) {
     val component = TableComponent<T>().apply(build)
 
-    (::table.styled(styling,TableComponent.staticCss,id,prefix){}){
+    val config = component.configStore.data.map { it.sortedBy { it.position } }
+
+
+    (::table.styled({
+        styling()
+    },TableComponent.staticCss,id,prefix){}){
+        className(component.configStore.data.map {
+            staticStyle(
+                "myTable", {
+                    css("display:grid;")
+                    columns { repeat(it.size){ "1fr" } }
+                }
+            ).name
+        })
+
         thead {
             tr {
                 th {
@@ -121,7 +137,7 @@ fun <T, I> RenderContext.table(
                     }
                 }
 
-                component.configStore.data.renderEach { ctx ->
+                config.renderEach { ctx ->
                     th {
                         +ctx.headerName
                     }
@@ -152,14 +168,14 @@ fun <T, I> RenderContext.table(
                                 }
                             }
                         }
-                     } else if( component.selectionMode == TableComponent.Companion.SelectionMode.SINGLE ) {
+                    } else if( component.selectionMode == TableComponent.Companion.SelectionMode.SINGLE ) {
                         component.selectedRowEvent?.let {
                             clicks.events.combine(rowStore.data) { _, thisRow ->
                                 thisRow
                             } handledBy it
                         }
                     }
-                    component.configStore.data.renderEach { ctx ->
+                    config.renderEach { ctx ->
                         td {
                             if (ctx.lens != null) {
                                 val b = rowStore.sub(ctx.lens)

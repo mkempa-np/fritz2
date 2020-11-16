@@ -123,6 +123,7 @@ fun RenderContext.tableDemo(): Div {
                     TableComponent.TableColumn(
                         null,
                         "Actions",
+                        position = -1,
                         content = {ctx, col, row ->
                             ctx.apply {
                                 clickButton {
