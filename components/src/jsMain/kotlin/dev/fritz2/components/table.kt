@@ -97,12 +97,18 @@ fun <T, I> RenderContext.table(
 ) {
     val component = TableComponent<T>().apply(build)
 
+    val tableBaseClass = if( baseClass != null ) {
+        baseClass + TableComponent.staticCss
+    } else {
+        TableComponent.staticCss
+    }
+
     val config = component.configStore.data.map { it.sortedBy { it.position } }
 
 
     (::table.styled({
         styling()
-    },TableComponent.staticCss,id,prefix){}){
+    }, tableBaseClass ,id,prefix){}){
         className(component.configStore.data.map {
             staticStyle(
                 "myTable", {
