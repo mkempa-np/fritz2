@@ -14,39 +14,56 @@ import kotlinx.coroutines.flow.map
 import kotlin.js.Date
 
 val defaultList = listOf(
-    Person(uniqueId(),
+    Person(
+        uniqueId(),
         1,
         "Mr. John Doe",
         "1970-01-01",
         "john.doe@example.com",
         "13245",
         "8445645",
-        Address("Street","1","12345","City")
+        Address("Street", "1", "12345", "City")
     ),
-    Person(uniqueId(),
+    Person(
+        uniqueId(),
         2,
         "Mrs. Jane Doe",
         "2000-11-11",
         "jane.doe@example.com",
         "856715",
         "84456 - 131 - 2345",
-        address =  Address("Avenue", "42", "78945", "Hometown")),
-    Person(uniqueId(),
+        address = Address("Avenue", "42", "78945", "Hometown")
+    ),
+    Person(
+        uniqueId(),
         3,
         "Dr.  Jean Dupont",
         "1990-09-01",
         "jean.dupint@exemple.fr",
         "986 - 4 45",
         "84456 - 131 - 2345",
-        address = Address("Rue de bleu", "13", "FR - 56473", "Ville")),
-    Person(uniqueId(),
+        address = Address("Rue de bleu", "13", "FR - 56473", "Ville")
+    ),
+    Person(
+        uniqueId(),
         4,
+        "Sir  Juan Pérez",
+        "1980-12-01",
+        "adam@ejemplo.es",
+        "897 / 123",
+        "+45 2345",
+        address = Address("El Camino", "75", "85236", "Ciudad")
+    ),
+    Person(
+        uniqueId(),
+        5,
         "Sir  Juan Pérez",
         "1980-12-01",
         "juan.perez@ejemplo.es",
         "897 / 123",
         "+45 2345",
-        address = Address("El Camino", "75", "85236", "Ciudad"))
+        address = Address("El Caminos", "75", "85236", "Ciudad")
+    )
 )
 
 
@@ -67,8 +84,7 @@ val cityLens = buildLens("city", Address::city) { p, v -> p.copy(city = v) }
 
 
 object TableStore : RootStore<List<Person>>(defaultList, "personData") {
-    val remove = handle<Person> {
-            list, toDelete ->
+    val remove = handle<Person> { list, toDelete ->
         list.filter { it != toDelete }
     }
 }
@@ -85,121 +101,139 @@ object Formats {
 fun RenderContext.tableDemo(): Div {
 
 
+    defaultList.sortedWith(compareBy { it.fullName })
 
+    return div {
+        h1 { +"Table Showcase" }
 
-    return div { h1 { +"Table Showcase" }
+        val selectedStore = object : RootStore<List<Person>>(emptyList()) {
 
-            val selectedStore = object: RootStore<List<Person>>(emptyList()){
-
-                val add = handle<Person> { list, selected ->
-                    if( !list.contains(selected) ) {
-                        list + selected
-                    }  else {
-                        list
-                    }
+            val add = handle<Person> { list, selected ->
+                if (!list.contains(selected)) {
+                    list + selected
+                } else {
+                    list
                 }
-
-                val toggle = handle<Person> { list, item ->
-                    console.info(item)
-                    if( !list.contains(item) ) {
-                        list + item
-                    }  else {
-                        list.filter { it != item }
-                    }
-                }
-
-                val clearList = handle {
-                    emptyList()
-                }
-
             }
 
-           val selectionModeStore = storeOf(TableComponent.Companion.SelectionMode.NONE)
-           lineUp {
-               items {
-                   TableComponent.Companion.SelectionMode.values().toList().map { mode ->
-                       clickButton { text(mode.toString()) }.events.map{mode} handledBy selectionModeStore.update
-                   }
-               }
-           }
-
-
-            selectedStore.data.render { list ->
-                p{ + "Aktuell sind ${list.size} Zeilen ausgewählt!"}
+            val toggle = handle<Person> { list, item ->
+                console.info(item)
+                if (!list.contains(item)) {
+                    list + item
+                } else {
+                    list.filter { it != item }
+                }
             }
 
+            val clearList = handle {
+                emptyList()
+            }
+
+        }
+
+        val selectionModeStore = storeOf(TableComponent.Companion.SelectionMode.NONE)
+        lineUp {
+            items {
+                TableComponent.Companion.SelectionMode.values().toList().map { mode ->
+                    clickButton { text(mode.toString()) }.events.map { mode } handledBy selectionModeStore.update
+                }
+            }
+        }
 
 
-            table<Person,Int>( rowIdProvider = Person::id ) {
-                    caption(  selectionModeStore.data.map { mode ->
-                        "Table with \"${mode.name}\" Selection Mode "
-                    })
-                    tableStore(TableStore)
-                    selectedRows(selectedStore.data)
-                    selectedAllRowEvents = selectedStore.update
-                    selectedRowEvent = selectedStore.toggle
-                    selectionMode(selectionModeStore.data)
-                    configStore(listOf(
-                        TableComponent.TableColumn(
-                            personIdLens + Formats.intFormat,
-                            "ID",
-                            minWidth = "80px",
-                            maxWidth = "80px"
-                        ),
-                        TableComponent.TableColumn(
-                            fullNameLens,
-                            "Name",
-                            maxWidth = "1.33fr"
-                        ),
-                        TableComponent.TableColumn(
-                            birthdayLens,
-                            "Birthday",
-                            minWidth = "100px",
-                            maxWidth = "100px",
-                            styling = {
-                                color { danger }
-                            },
-                            stylingHead = {
-                                css("color:orange !important;")
+        selectedStore.data.render { list ->
+            p { +"Aktuell sind ${list.size} Zeilen ausgewählt!" }
+        }
+
+
+
+        table<Person, Int>(rowIdProvider = Person::id) {
+            caption(selectionModeStore.data.map { mode ->
+                "Table with \"${mode.name}\" Selection Mode "
+            })
+            tableStore(TableStore)
+            selectedRows(selectedStore.data)
+            selectedAllRowEvents = selectedStore.update
+            selectedRowEvent = selectedStore.toggle
+            selectionMode(selectionModeStore.data)
+            configStore(
+                listOf(
+                    TableComponent.TableColumn(
+                        personIdLens + Formats.intFormat,
+                        "ID",
+                        minWidth = "80px",
+                        maxWidth = "80px"
+                    ),
+                    TableComponent.TableColumn(
+                        fullNameLens,
+                        "Name",
+                        maxWidth = "1.33fr",
+                        sortDirection = TableComponent.Companion.SortDirection.DESC
+                    ),
+                    TableComponent.TableColumn(
+                        birthdayLens,
+                        "Birthday",
+                        minWidth = "100px",
+                        maxWidth = "100px",
+                        styling = {
+                            color { danger }
+                        },
+                        stylingHead = {
+                            css("color:orange !important;")
+                        }/*,
+                            sortingBy = { DateSorter(p -> p.birthday)
+                                // Sorter()
+                                a + b
                             }
-                        ),
-                        TableComponent.TableColumn(
-                            null,
-                            "Address",
-                            maxWidth = "2fr",
-                            content = { ctx,_, rowStore ->
-                                rowStore?.let{ person ->
-                                    val street =  person.sub(personAddressLens + streetLens)
-                                    val houseNumber =  person.sub(personAddressLens + houseNumberLens)
-                                    val postalCode =  person.sub(personAddressLens + postalCodeLens)
-                                    val city =  person.sub(personAddressLens + cityLens)
-                                    ctx.apply {
-                                        street.data.combine(houseNumber.data) { s, h ->
-                                            "$s $h"
-                                        }.combine(postalCode.data) { a, p ->
-                                            "$a ,$p"
-                                        }.combine(city.data) { a, c ->
-                                            "$a $c"
-                                        }.asText()
-                                    }
-
+                        */
+                    ),
+                    TableComponent.TableColumn(
+                        null,
+                        "Address",
+                        maxWidth = "2fr",
+                        content = { ctx, _, rowStore ->
+                            rowStore?.let { person ->
+                                val street = person.sub(personAddressLens + streetLens)
+                                val houseNumber = person.sub(personAddressLens + houseNumberLens)
+                                val postalCode = person.sub(personAddressLens + postalCodeLens)
+                                val city = person.sub(personAddressLens + cityLens)
+                                ctx.apply {
+                                    street.data.combine(houseNumber.data) { s, h ->
+                                        "$s $h"
+                                    }.combine(postalCode.data) { a, p ->
+                                        "$a ,$p"
+                                    }.combine(city.data) { a, c ->
+                                        "$a $c"
+                                    }.asText()
                                 }
 
                             }
-                        ),
-                        TableComponent.TableColumn(
-                            phoneLens,
-                            "Phone"
-                        ),
-                        TableComponent.TableColumn(
-                            mobileLens,
-                            "Mobile"
-                        ),
-                        TableComponent.TableColumn(
-                            emailLens,
-                            "eMail"
-                        ),
-                    ))
-                }
-         }
+                        },
+                        // Does not work yet!
+                        sortDirection = TableComponent.Companion.SortDirection.ASC
+                    ),
+                    TableComponent.TableColumn(
+                        phoneLens,
+                        "Phone"
+                    ),
+                    TableComponent.TableColumn(
+                        mobileLens,
+                        "Mobile"
+                    ),
+                    TableComponent.TableColumn(
+                        emailLens,
+                        "eMail",
+                        sortDirection = TableComponent.Companion.SortDirection.ASC
+                    ),
+                )
+            )
+            sorter = NaiveSorter()
+            /*
+            sortingStrategies {
+                fullNameLens to SpecialSortingAlgo {}, // sort(a: Person, b: Person) = 0, 1, -1
+                streetLens to OtherSpecial()
+            }
+             */
+        }
+    }
 }

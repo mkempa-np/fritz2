@@ -17,6 +17,46 @@ import dev.fritz2.styling.theme.Property
 import dev.fritz2.styling.theme.theme
 import kotlinx.coroutines.flow.*
 
+
+class NaiveSorter<T> {
+    fun sortedBy(elements: List<T>, config: List<TableComponent.TableColumn<T>>): List<T> {
+        val filterRules = config.filter {
+            it.sortDirection != TableComponent.Companion.SortDirection.UNSORTABLE
+                    && it.sortDirection != TableComponent.Companion.SortDirection.NONE
+                    // TODO: Not right!
+                    // TODO: && no special sorting given
+                    && it.lens != null
+        }
+        return if (filterRules.isNotEmpty()) {
+            val first = filterRules.first()
+            elements.sortedWith(
+                filterRules
+                    .drop(1)
+                    .fold(
+                        when (first.sortDirection) {
+                            TableComponent.Companion.SortDirection.ASC -> {
+                                compareBy { first.lens!!.get(it) }
+                            }
+                            else -> {
+                                compareByDescending { first.lens!!.get(it) }
+                            }
+                        },
+                        { a, b ->
+                            when (b.sortDirection) {
+                                TableComponent.Companion.SortDirection.ASC -> {
+                                    a.thenBy { b.lens!!.get(it) }
+                                }
+                                else -> {
+                                    a.thenByDescending { b.lens!!.get(it) }
+                                }
+                            }
+                        }
+                    )
+            )
+        } else elements
+    }
+}
+
 /**
  * TODO open questions
  *  tfoot what will we do with this section of a table?
@@ -24,7 +64,7 @@ import kotlinx.coroutines.flow.*
  * TODO open todos
  *
  */
-class TableComponent <T>{
+class TableComponent<T> {
     companion object {
         const val prefix = "table"
         val staticCss = staticStyle(
@@ -96,6 +136,7 @@ class TableComponent <T>{
         }
 
         enum class SortDirection {
+            UNSORTABLE,
             NONE,
             ASC,
             DESC
@@ -110,7 +151,7 @@ class TableComponent <T>{
 
 
     data class TableColumn<T>(
-        val lens: Lens<T,String>? = null,
+        val lens: Lens<T, String>? = null,
         val headerName: String = "",
         val minWidth: Property? = null,
         val maxWidth: Property? = null,
@@ -121,17 +162,21 @@ class TableComponent <T>{
         val filter: Unit = Unit,
         val styling: Style<BasicParams> = {},
         val stylingHead: Style<BasicParams> = {},
-        val contentHead : ( renderContext: Th, tableColumn: TableColumn<T> ) -> Unit = { renderContext, config ->
-            renderContext.apply{ +config.headerName }
+        val contentHead: (renderContext: Th, tableColumn: TableColumn<T>) -> Unit = { renderContext, config ->
+            renderContext.apply { +config.headerName }
         },
-        val content: (renderContext: Td,
-                      cellStore: Store<String>?,
-                      rowStore: SubStore<List<T>,List<T>,T>?) -> Unit  = { renderContext,store,_ ->
-                        renderContext.apply {
-                            store?.data?.asText()
-                        }
-                      }
+        val content: (
+            renderContext: Td,
+            cellStore: Store<String>?,
+            rowStore: SubStore<List<T>, List<T>, T>?
+        ) -> Unit = { renderContext, store, _ ->
+            renderContext.apply {
+                store?.data?.asText()
+            }
+        }
     )
+
+    var sorter: NaiveSorter<T>? = null
 
     var defaultMinWidth: Property = "150px"
     var defaultMaxWidth: Property = "1fr"
@@ -140,14 +185,16 @@ class TableComponent <T>{
     fun selectionMode(value: SelectionMode) {
         selectionMode = flowOf(value)
     }
+
     fun selectionMode(value: Flow<SelectionMode>) {
         selectionMode = value
     }
 
     var configStore: Store<List<TableColumn<T>>> = storeOf(emptyList())
     fun configStore(value: Store<List<TableColumn<T>>>) {
-       configStore = value
+        configStore = value
     }
+
     fun configStore(value: List<TableColumn<T>>) {
         configStore.update(value)
     }
@@ -163,11 +210,11 @@ class TableComponent <T>{
     }
 
     var selectedRowEvent: SimpleHandler<T>? = null
-    var selectedAllRowEvents:  SimpleHandler<List<T>>? = null
+    var selectedAllRowEvents: SimpleHandler<List<T>>? = null
 
 
     var captionPlacement: CaptionPlacement = CaptionPlacement.TOP
-    fun captionPlacement(value :CaptionPlacement)  {
+    fun captionPlacement(value: CaptionPlacement) {
         captionPlacement = value
     }
 
@@ -175,21 +222,23 @@ class TableComponent <T>{
     fun caption(value: (RenderContext.() -> Unit)) {
         caption = {
             (::caption.styled() {
-                if( captionPlacement == CaptionPlacement.TOP ) {
-                  css("grid-area:header;")
+                if (captionPlacement == CaptionPlacement.TOP) {
+                    css("grid-area:header;")
                 } else {
                     css("grid-area:footer;")
                 }
             }){ value() }
         }
     }
+
     fun caption(value: String) {
         this.caption(flowOf(value))
     }
+
     fun caption(value: Flow<String>) {
         caption = {
             (::caption.styled() {
-                if( captionPlacement == CaptionPlacement.TOP ) {
+                if (captionPlacement == CaptionPlacement.TOP) {
                     css("grid-area:header;")
                 } else {
                     css("grid-area:footer;")
@@ -310,7 +359,9 @@ fun <T, I> RenderContext.table(
             emptyList()
         }
     }
-    val config = additionalCol.combine(component.configStore.data.map { it.filterNot { it.hidden }.sortedBy { it.position } }){a, b -> a + b}
+    val config = additionalCol.combine(component.configStore.data.map {
+        it.filterNot { it.hidden }.sortedBy { it.position }
+    }) { a, b -> a + b }
 
     val gridCols = config.map { configItems ->
         var minmax = ""
@@ -329,7 +380,7 @@ fun <T, I> RenderContext.table(
             header += "header "
         }
 
-           """
+        """
             grid-template-columns: $minmax;                
             grid-template-rows: auto;
             grid-template-areas:
@@ -350,22 +401,34 @@ fun <T, I> RenderContext.table(
         thead {
             tr {
                 config.renderEach { ctx ->
-                    (::th.styled(ctx.stylingHead){})  {
+                    (::th.styled(ctx.stylingHead) {})  {
                         ctx.contentHead(this, ctx)
                     }
                 }
             }
         }
         tbody {
-            component.tableStore.renderEach(rowIdProvider) { rowStore ->
-
+            component.tableStore.data.combine(config) { tableData, config ->
+                if (component.sorter == null) {
+                    tableData
+                } else {
+                    component.sorter!!.sortedBy(tableData, config)
+                }
+            }.renderEach(rowIdProvider) { t ->
+                val rowStore = component.tableStore.sub(t, rowIdProvider)
                 val selected = component.selectedRows.combine(rowStore.data) { selectedRows, thisRow ->
-                        selectedRows.contains(thisRow)
+                    selectedRows.contains(thisRow)
                 }
 
 
                 tr {
-                    className( selected.combine( component.selectionMode ){ selected, selectionMode -> if(selected && selectionMode == TableComponent.Companion.SelectionMode.SINGLE){"selected"} else {""} })
+                    className(selected.combine(component.selectionMode) { selected, selectionMode ->
+                        if (selected && selectionMode == TableComponent.Companion.SelectionMode.SINGLE) {
+                            "selected"
+                        } else {
+                            ""
+                        }
+                    })
                     component.selectionMode.render { selectionMode ->
                         if (selectionMode == TableComponent.Companion.SelectionMode.SINGLE) {
                             component.selectedRowEvent?.let {
@@ -377,7 +440,7 @@ fun <T, I> RenderContext.table(
                     }
 
                     config.renderEach { ctx ->
-                        (::td.styled(ctx.styling){}) {
+                        (::td.styled(ctx.styling) {}) {
                             if (ctx.lens != null) {
                                 val b = rowStore.sub(ctx.lens)
                                 ctx.content(this, b, rowStore)
