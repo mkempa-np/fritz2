@@ -8,6 +8,8 @@ import dev.fritz2.dom.html.render
 import dev.fritz2.dom.states
 import dev.fritz2.identification.uniqueId
 import dev.fritz2.lenses.Lens
+import dev.fritz2.lenses.Lenses
+import dev.fritz2.lenses.buildLens
 import dev.fritz2.styling.StyleClass
 import dev.fritz2.styling.params.BasicParams
 import dev.fritz2.styling.params.GridParams
@@ -92,7 +94,7 @@ class TableComponent<T> {
                                 
                 th,
                 td {
-                  padding: 0.5rem;
+                  padding: 0.5rem 1.4rem .5rem 0.5rem;
                   overflow: hidden;
                   text-overflow: ellipsis;
                   white-space: nowrap;
@@ -128,6 +130,29 @@ class TableComponent<T> {
             """
         )
 
+        val sortDirectionSelected:Style<BasicParams> = {
+            color { warning }
+        }
+
+        val sortDirectionIcon : Style<BasicParams> = {
+            width { "0.9rem" }
+            height { "0.9rem" }
+            css("cursor:pointer;")
+        }
+
+        val sorterStyle: Style<BasicParams> = {
+            display { inlineGrid }
+            paddings { vertical { "0.35rem" } }
+            height { "fitContent" }
+            position {
+                absolute {
+                    right { "0.5rem" }
+                    top { "0" }
+                }
+            }
+        }
+
+
         enum class SelectionMode {
             NONE,
             SINGLE,
@@ -149,7 +174,9 @@ class TableComponent<T> {
 
     }
 
+    val configIdProvider = TableColumn<T>::_id
 
+    @Lenses
     data class TableColumn<T>(
         val lens: Lens<T, String>? = null,
         val headerName: String = "",
@@ -173,13 +200,36 @@ class TableComponent<T> {
             renderContext.apply {
                 store?.data?.asText()
             }
-        }
+        },
+        val _id: String = uniqueId()
     )
 
     var sorter: NaiveSorter<T>? = null
 
     var defaultMinWidth: Property = "150px"
     var defaultMaxWidth: Property = "1fr"
+
+    var defaultTHeadStyle: Style<BasicParams> = {}
+    fun defaultTHeadStyle( value: (() -> Style<BasicParams>)) {
+        defaultTHeadStyle = value()
+    }
+
+    var defaultThStyle: Style<BasicParams> = {}
+    fun defaultThStyle( value: (() -> Style<BasicParams>)) {
+        defaultThStyle = value()
+    }
+
+    var defaultTBodyStyle: Style<BasicParams> = {}
+    fun defaultTBodyStyle( value: (() -> Style<BasicParams>)) {
+        defaultTBodyStyle = value()
+    }
+
+    var defaultTdStyle: Style<BasicParams> = {}
+    fun defaultTdStyle( value: (() -> Style<BasicParams>)) {
+        defaultTdStyle = value()
+    }
+
+
 
     var selectionMode: Flow<SelectionMode> = flowOf(SelectionMode.NONE)
     fun selectionMode(value: SelectionMode) {
@@ -190,8 +240,8 @@ class TableComponent<T> {
         selectionMode = value
     }
 
-    var configStore: Store<List<TableColumn<T>>> = storeOf(emptyList())
-    fun configStore(value: Store<List<TableColumn<T>>>) {
+    var configStore: RootStore<List<TableColumn<T>>> = storeOf(emptyList())
+    fun configStore(value: RootStore<List<TableColumn<T>>>) {
         configStore = value
     }
 
@@ -246,6 +296,9 @@ class TableComponent<T> {
             }){ value.asText() }
         }
     }
+
+    //fun renderSorter(renderContext: Th, )
+
 }
 
 fun <T, I> RenderContext.table(
@@ -264,8 +317,9 @@ fun <T, I> RenderContext.table(
         TableComponent.staticCss
     }
     component.selectionMode.watch()
+    component.configStore.watch()
 
-
+    val sortDirectionLens = buildLens("sortDirection", TableComponent.TableColumn<T>::sortDirection) {p, v -> p.copy(sortDirection = v) }
     val additionalCol = component.selectionMode.map { selectionMode ->
         if (selectionMode == TableComponent.Companion.SelectionMode.MULTI) {
             listOf(
@@ -359,6 +413,9 @@ fun <T, I> RenderContext.table(
             emptyList()
         }
     }
+
+
+
     val config = additionalCol.combine(component.configStore.data.map {
         it.filterNot { it.hidden }.sortedBy { it.position }
     }) { a, b -> a + b }
@@ -390,73 +447,111 @@ fun <T, I> RenderContext.table(
            """
     }
 
-    (::table.styled({
-        styling()
-    }, tableBaseClass, id, prefix) {}){
-        attr("style", gridCols)
-        if (component.captionPlacement == TableComponent.Companion.CaptionPlacement.TOP) {
-            component.caption?.invoke(this)
-        }
-
-        thead {
-            tr {
-                config.renderEach { ctx ->
-                    (::th.styled(ctx.stylingHead) {})  {
-                        ctx.contentHead(this, ctx)
-                    }
-                }
-            }
-        }
-        tbody {
-            component.tableStore.data.combine(config) { tableData, config ->
-                if (component.sorter == null) {
-                    tableData
-                } else {
-                    component.sorter!!.sortedBy(tableData, config)
-                }
-            }.renderEach(rowIdProvider) { t ->
-                val rowStore = component.tableStore.sub(t, rowIdProvider)
-                val selected = component.selectedRows.combine(rowStore.data) { selectedRows, thisRow ->
-                    selectedRows.contains(thisRow)
-                }
 
 
-                tr {
-                    className(selected.combine(component.selectionMode) { selected, selectionMode ->
-                        if (selected && selectionMode == TableComponent.Companion.SelectionMode.SINGLE) {
-                            "selected"
-                        } else {
-                            ""
-                        }
-                    })
-                    component.selectionMode.render { selectionMode ->
-                        if (selectionMode == TableComponent.Companion.SelectionMode.SINGLE) {
-                            component.selectedRowEvent?.let {
-                                clicks.events.combine(rowStore.data) { _, thisRow ->
-                                    thisRow
-                                } handledBy it
-                            }
-                        }
-                    }
 
-                    config.renderEach { ctx ->
-                        (::td.styled(ctx.styling) {}) {
-                            if (ctx.lens != null) {
-                                val b = rowStore.sub(ctx.lens)
-                                ctx.content(this, b, rowStore)
-                            } else {
-                                ctx.content(this, null, rowStore)
-                            }
-                        }
-                    }
-
-                }
-            }
-
-            if (component.captionPlacement == TableComponent.Companion.CaptionPlacement.BOTTOM) {
+        (::table.styled({
+            styling()
+        }, tableBaseClass, id, prefix) {}){
+            attr("style", gridCols)
+            if (component.captionPlacement == TableComponent.Companion.CaptionPlacement.TOP) {
                 component.caption?.invoke(this)
             }
+            component.configStore.data.render {
+                console.info(it)
+            }
+            (::thead.styled() {
+                component.defaultTHeadStyle()
+            }) {
+                tr {
+                    config.renderEach { colConfig ->
+                        val colConfigStore = component.configStore.sub(colConfig, component.configIdProvider)
+                        val sortDirection = colConfigStore.sub(sortDirectionLens)
+                        (::th.styled(colConfig.stylingHead) {
+                            component.defaultThStyle()
+                        })  {
+                            colConfig.contentHead(this, colConfig)
 
+                            //TODO bring it to renderSorter
+                            if (colConfig.sortDirection != TableComponent.Companion.SortDirection.UNSORTABLE) {
+                                (::div.styled(TableComponent.sorterStyle) {}){
+                                    icon({
+                                        TableComponent.sortDirectionIcon()
+                                        if (colConfig.sortDirection == TableComponent.Companion.SortDirection.ASC) {
+                                            TableComponent.sortDirectionSelected()
+                                        }
+                                    }) { fromTheme { triangleUp } }
+                                    icon({
+                                        TableComponent.sortDirectionIcon()
+                                        if (colConfig.sortDirection == TableComponent.Companion.SortDirection.DESC) {
+                                            TableComponent.sortDirectionSelected()
+                                        }
+                                    }) { fromTheme { triangleDown } }
+                                    clicks.events.map {
+                                        console.info(colConfig.sortDirection)
+                                        when (colConfig.sortDirection) {
+                                            TableComponent.Companion.SortDirection.ASC -> TableComponent.Companion.SortDirection.DESC
+                                            TableComponent.Companion.SortDirection.DESC -> TableComponent.Companion.SortDirection.NONE
+                                            else -> TableComponent.Companion.SortDirection.ASC
+                                        }
+                                    } handledBy sortDirection.update
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            tbody {
+                component.tableStore.data.combine(config) { tableData, config ->
+                    if (component.sorter == null) {
+                        tableData
+                    } else {
+                        component.sorter!!.sortedBy(tableData, config)
+                    }
+                }.renderEach(rowIdProvider) { t ->
+                    val rowStore = component.tableStore.sub(t, rowIdProvider)
+                    val selected = component.selectedRows.combine(rowStore.data) { selectedRows, thisRow ->
+                        selectedRows.contains(thisRow)
+                    }
+
+
+                    tr {
+                        className(selected.combine(component.selectionMode) { selected, selectionMode ->
+                            if (selected && selectionMode == TableComponent.Companion.SelectionMode.SINGLE) {
+                                "selected"
+                            } else {
+                                ""
+                            }
+                        })
+                        component.selectionMode.render { selectionMode ->
+                            if (selectionMode == TableComponent.Companion.SelectionMode.SINGLE) {
+                                component.selectedRowEvent?.let {
+                                    clicks.events.combine(rowStore.data) { _, thisRow ->
+                                        thisRow
+                                    } handledBy it
+                                }
+                            }
+                        }
+
+                        config.renderEach { ctx ->
+                            (::td.styled(ctx.styling) {}) {
+                                if (ctx.lens != null) {
+                                    val b = rowStore.sub(ctx.lens)
+                                    ctx.content(this, b, rowStore)
+                                } else {
+                                    ctx.content(this, null, rowStore)
+                                }
+                            }
+                        }
+
+                    }
+                }
+
+                if (component.captionPlacement == TableComponent.Companion.CaptionPlacement.BOTTOM) {
+                    component.caption?.invoke(this)
+                }
+
+            }
         }
-    }
+
 }

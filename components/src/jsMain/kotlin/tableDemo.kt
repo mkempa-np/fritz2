@@ -156,6 +156,15 @@ fun RenderContext.tableDemo(): Div {
             selectedAllRowEvents = selectedStore.update
             selectedRowEvent = selectedStore.toggle
             selectionMode(selectionModeStore.data)
+
+
+
+            defaultThStyle {
+                {
+                    background { color { "#1fd257"} }
+                }
+            }
+
             configStore(
                 listOf(
                     TableComponent.TableColumn(
@@ -167,20 +176,16 @@ fun RenderContext.tableDemo(): Div {
                     TableComponent.TableColumn(
                         fullNameLens,
                         "Name",
-                        maxWidth = "1.33fr",
-                        sortDirection = TableComponent.Companion.SortDirection.DESC
-                    ),
+                        maxWidth = "1.33fr"),
                     TableComponent.TableColumn(
                         birthdayLens,
                         "Birthday",
-                        minWidth = "100px",
-                        maxWidth = "100px",
+                        minWidth = "120px",
+                        maxWidth = "120px",
                         styling = {
                             color { danger }
-                        },
-                        stylingHead = {
-                            css("color:orange !important;")
-                        }/*,
+                        }
+                         /*,
                             sortingBy = { DateSorter(p -> p.birthday)
                                 // Sorter()
                                 a + b
@@ -210,7 +215,7 @@ fun RenderContext.tableDemo(): Div {
                             }
                         },
                         // Does not work yet!
-                        sortDirection = TableComponent.Companion.SortDirection.ASC
+                        //sortDirection = TableComponent.Companion.SortDirection.ASC
                     ),
                     TableComponent.TableColumn(
                         phoneLens,
@@ -223,7 +228,6 @@ fun RenderContext.tableDemo(): Div {
                     TableComponent.TableColumn(
                         emailLens,
                         "eMail",
-                        sortDirection = TableComponent.Companion.SortDirection.ASC
                     ),
                 )
             )
