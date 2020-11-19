@@ -1,12 +1,13 @@
 package dev.fritz2.components.model
 import dev.fritz2.lenses.Lenses
+import kotlinx.datetime.LocalDate
 
 @Lenses
 data class Person (
     val _id: String = "",
     val id: Int = 0,
     val fullName: String = "",
-    val birthday:String = "",
+    val birthday:LocalDate = LocalDate(1900, 1, 1),
     val email: String = "",
     val mobile: String = "",
     val phone: String = "",

@@ -11,14 +11,14 @@ import dev.fritz2.lenses.format
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlin.js.Date
+import kotlinx.datetime.LocalDate
 
 val defaultList = listOf(
     Person(
         uniqueId(),
         1,
         "Mr. John Doe",
-        "1970-01-01",
+        LocalDate.parse("1970-01-01"),
         "john.doe@example.com",
         "13245",
         "8445645",
@@ -28,7 +28,7 @@ val defaultList = listOf(
         uniqueId(),
         2,
         "Mrs. Jane Doe",
-        "2000-11-11",
+        LocalDate.parse("2000-11-11"),
         "jane.doe@example.com",
         "856715",
         "84456 - 131 - 2345",
@@ -38,7 +38,7 @@ val defaultList = listOf(
         uniqueId(),
         3,
         "Dr.  Jean Dupont",
-        "1990-09-01",
+        LocalDate.parse("1990-09-01"),
         "jean.dupint@exemple.fr",
         "986 - 4 45",
         "84456 - 131 - 2345",
@@ -48,17 +48,17 @@ val defaultList = listOf(
         uniqueId(),
         4,
         "Sir  Juan Pérez",
-        "1980-12-01",
+        LocalDate.parse("1980-12-06"),
         "adam@ejemplo.es",
         "897 / 123",
         "+45 2345",
-        address = Address("El Camino", "75", "85236", "Ciudad")
+        address = Address("Was Dazdann", "75", "85236", "Ciudad")
     ),
     Person(
         uniqueId(),
         5,
         "Sir  Juan Pérez",
-        "1980-12-01",
+        LocalDate.parse("1980-12-01"),
         "juan.perez@ejemplo.es",
         "897 / 123",
         "+45 2345",
@@ -93,6 +93,15 @@ object Formats {
     val intFormat: Lens<Int, String> = format(
         parse = { it.toInt() },
         format = { it.toString() }
+    )
+
+    val dateFormat: Lens<LocalDate, String> = format(
+        parse = { LocalDate.parse(it) },
+        format = {
+            "${it.dayOfMonth.toString().padStart(2, '0')}.${
+                it.monthNumber.toString().padStart(2, '0')
+            }.${it.year}"
+        }
     )
 }
 
@@ -161,7 +170,7 @@ fun RenderContext.tableDemo(): Div {
 
             defaultThStyle {
                 {
-                    background { color { "#1fd257"} }
+                    background { color { "#1fd257" } }
                 }
             }
 
@@ -176,21 +185,20 @@ fun RenderContext.tableDemo(): Div {
                     TableComponent.TableColumn(
                         fullNameLens,
                         "Name",
-                        maxWidth = "1.33fr"),
+                        maxWidth = "1.33fr"
+                    ),
                     TableComponent.TableColumn(
-                        birthdayLens,
+                        birthdayLens + Formats.dateFormat,
                         "Birthday",
                         minWidth = "120px",
                         maxWidth = "120px",
                         styling = {
                             color { danger }
+                        },
+                        // TODO Switch BDay to real Date type and then feel the power of custom sorting!!!
+                        sorting = compareBy { person ->
+                            person.birthday
                         }
-                         /*,
-                            sortingBy = { DateSorter(p -> p.birthday)
-                                // Sorter()
-                                a + b
-                            }
-                        */
                     ),
                     TableComponent.TableColumn(
                         null,
@@ -214,12 +222,16 @@ fun RenderContext.tableDemo(): Div {
 
                             }
                         },
-                        // Does not work yet!
-                        //sortDirection = TableComponent.Companion.SortDirection.ASC
+                        sorting = compareBy<Person> { person ->
+                            person.address.city
+                        }.thenBy { person ->
+                            person.address.street
+                        }
                     ),
                     TableComponent.TableColumn(
                         phoneLens,
-                        "Phone"
+                        "Phone",
+                        sortDirection = TableComponent.Companion.SortDirection.UNSORTABLE
                     ),
                     TableComponent.TableColumn(
                         mobileLens,

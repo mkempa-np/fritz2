@@ -7,7 +7,13 @@ plugins {
 //FIXME: move to parent
 val coroutines_version = "1.3.9"
 
+repositories {
+    maven(url = "https://kotlin.bintray.com/kotlinx/") // soon will be just jcenter()
+}
+
 kotlin {
+
+
     jvm()
     js().browser {
         testTask {
@@ -37,6 +43,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(project(":core"))
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.1.0")
             }
         }
 
@@ -52,6 +59,7 @@ kotlin {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-js:$coroutines_version")
                 implementation(project(":styling"))
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.1.0")
             }
         }
         val jsTest by getting {
