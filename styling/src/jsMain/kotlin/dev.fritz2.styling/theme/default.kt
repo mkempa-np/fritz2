@@ -10,6 +10,7 @@ import dev.fritz2.styling.theme.*
 open class DefaultTheme : Theme {
     override val name = "default"
 
+    // @todo doch besser em wie chakra ui? Pro / Contra? EM = Probs wenn nicht in ganzer seite eingesetzt oder?
     final override val breakPoints = ResponsiveValue("576px", "768px", "992px", "1200px")
 
     override val mediaQuerySm: String = "@media screen and (min-width: ${breakPoints.sm})"
