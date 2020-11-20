@@ -166,90 +166,84 @@ fun RenderContext.tableDemo(): Div {
             selectedRowEvent = selectedStore.toggle
             selectionMode(selectionModeStore.data)
 
-
-
             defaultThStyle {
                 {
                     background { color { "#1fd257" } }
                 }
             }
 
-            configStore(
-                listOf(
-                    TableComponent.TableColumn(
-                        personIdLens + Formats.intFormat,
-                        "ID",
-                        minWidth = "80px",
-                        maxWidth = "80px"
-                    ),
-                    TableComponent.TableColumn(
-                        fullNameLens,
-                        "Name",
-                        maxWidth = "1.33fr"
-                    ),
-                    TableComponent.TableColumn(
-                        birthdayLens + Formats.dateFormat,
-                        "Birthday",
-                        minWidth = "120px",
-                        maxWidth = "120px",
-                        styling = {
-                            color { danger }
-                        },
-                        // TODO Switch BDay to real Date type and then feel the power of custom sorting!!!
-                        sorting = compareBy { person ->
+            columns {
+                column("ID") {
+                    lens { personIdLens + Formats.intFormat }
+                    width { minmax { "80px" } }
+                }
+                column("Name") {
+                    lens { fullNameLens }
+                    width { minmax { "1.33fr" } }
+                }
+                column("Birthday") {
+                    lens { birthdayLens + Formats.dateFormat }
+                    width { minmax { "120px" } }
+                    styling {
+                        color { danger }
+                    }
+                    sortBy {
+                        compareBy { person ->
                             person.birthday
                         }
-                    ),
-                    TableComponent.TableColumn(
-                        null,
-                        "Address",
-                        maxWidth = "2fr",
-                        content = { ctx, _, rowStore ->
-                            rowStore?.let { person ->
-                                val street = person.sub(personAddressLens + streetLens)
-                                val houseNumber = person.sub(personAddressLens + houseNumberLens)
-                                val postalCode = person.sub(personAddressLens + postalCodeLens)
-                                val city = person.sub(personAddressLens + cityLens)
-                                ctx.apply {
-                                    street.data.combine(houseNumber.data) { s, h ->
-                                        "$s $h"
-                                    }.combine(postalCode.data) { a, p ->
-                                        "$a ,$p"
-                                    }.combine(city.data) { a, c ->
-                                        "$a $c"
-                                    }.asText()
-                                }
-
+                    }
+                }
+                column {
+                    // lens can be omitted! It's purely optional and totally ok to have columns that hide its relation to
+                    // the data from the table itself!
+                    // ``header`` oder ``head``?
+                    header {
+                        title { "Address" }
+                        styling {
+                            background { color { "purple" } }
+                            fontWeight { bold }
+                        }
+                        content { config ->
+                            +config.headerName
+                            icon { fromTheme { fritz2 } }
+                        }
+                    }
+                    width { max { "2fr" } }
+                    content { ctx, _, rowStore ->
+                        rowStore?.let { person ->
+                            val street = person.sub(personAddressLens + streetLens)
+                            val houseNumber = person.sub(personAddressLens + houseNumberLens)
+                            val postalCode = person.sub(personAddressLens + postalCodeLens)
+                            val city = person.sub(personAddressLens + cityLens)
+                            ctx.apply {
+                                street.data.combine(houseNumber.data) { s, h ->
+                                    "$s $h"
+                                }.combine(postalCode.data) { a, p ->
+                                    "$a ,$p"
+                                }.combine(city.data) { a, c ->
+                                    "$a $c"
+                                }.asText()
                             }
-                        },
-                        sorting = compareBy<Person> { person ->
+
+                        }
+                    }
+                    sortBy {
+                        compareBy<Person> { person ->
                             person.address.city
                         }.thenBy { person ->
                             person.address.street
                         }
-                    ),
-                    TableComponent.TableColumn(
-                        phoneLens,
-                        "Phone",
-                        sortDirection = TableComponent.Companion.SortDirection.UNSORTABLE
-                    ),
-                    TableComponent.TableColumn(
-                        mobileLens,
-                        "Mobile"
-                    ),
-                    TableComponent.TableColumn(
-                        emailLens,
-                        "eMail",
-                    ),
-                )
-            )
-            sorter = NaiveSorter()
-            /*
-            sortingStrategies {
-                fullNameLens to SpecialSortingAlgo {}, // sort(a: Person, b: Person) = 0, 1, -1
-                streetLens to OtherSpecial()
+                    }
+                }
+                column("Phone") {
+                    lens { phoneLens }
+                    // TODO: Ugly -> Enum must be receiver; but how?
+                    sorting { TableComponent.Companion.Sorting.DISABLED }
+                }
+                column("Mobile") { lens { mobileLens } }
+                column("E-Mail") { lens { emailLens } }
             }
-             */
+            sorter = NaiveSorter()
         }
     }
 }
